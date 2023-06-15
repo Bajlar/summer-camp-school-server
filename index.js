@@ -73,13 +73,6 @@ async function run() {
       res.send(result);
     });
 
-    // classes data
-    // app.get("/classes", async (req, res) => {
-    //   const query = { status: user.approved };
-    //   const result = await classesCollection.find(query).toArray();
-    //   res.send(result);
-    // });
-
     app.get("/classes", async (req, res) => {
       const result = await classesCollection.find().toArray();
       res.send(result);
@@ -88,7 +81,7 @@ async function run() {
     // add class
     app.post("/classes", async (req, res) => {
       const newAddClass = req.body;
-      console.log(newAddClass);
+      // console.log(newAddClass);
       const result = await classesCollection.insertOne(newAddClass);
       res.send(result);
     });
