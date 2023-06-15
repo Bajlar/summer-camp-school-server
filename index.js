@@ -85,6 +85,14 @@ async function run() {
       res.send(result);
     });
 
+    // add class
+    app.post("/classes", async (req, res) => {
+      const newAddClass = req.body;
+      console.log(newAddClass);
+      const result = await classesCollection.insertOne(newAddClass);
+      res.send(result);
+    });
+
     // instructors data
     app.get("/instructors", async (req, res) => {
       const result = await instructorsCollection.find().toArray();
