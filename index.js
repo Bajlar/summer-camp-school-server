@@ -9,8 +9,30 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// jwt middleware
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res
+      .status(401)
+      .send({ error: true, message: "unAuthorized Access" });
+  }
+  const token = authorization.split(" ")[1];
+  // console.log(token);
+  // token verify
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+    if (error) {
+      return res
+        .status(401)
+        .send({ error: true, message: "unAuthorized Access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.cjmu2s6.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.USER_DB}:${process.env.PASS_DB}@cluster0.cjmu2s6.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -26,11 +48,11 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
 
+    const userCollection = client.db("sportsDb").collection("users");
     const classesCollection = client.db("sportsDb").collection("classes");
     const instructorsCollection = client
       .db("sportsDb")
       .collection("instructors");
-    const userCollection = client.db("sportsDb").collection("users");
 
     // jwt token
     app.post("/jwt", (req, res) => {
@@ -40,6 +62,19 @@ async function run() {
       });
       res.send({ token });
     });
+
+    // Warning: use verifyJWT before using verifyAdmin
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden message" });
+      }
+      next();
+    };
 
     // User collection
     app.get("/users", async (req, res) => {
@@ -73,7 +108,6 @@ async function run() {
       const result = await userCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
-
 
     // set database
     app.get("/classes", async (req, res) => {
