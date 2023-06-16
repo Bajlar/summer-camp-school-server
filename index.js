@@ -74,6 +74,8 @@ async function run() {
       res.send(result);
     });
 
+
+    // set database
     app.get("/classes", async (req, res) => {
       const result = await classesCollection.find().toArray();
       res.send(result);
@@ -104,7 +106,6 @@ async function run() {
   }
 }
 run().catch(console.dir);
-
 
 app.get("/", (req, res) => {
   res.send("Summer camp is here!");
