@@ -13,18 +13,15 @@ app.use(express.json());
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
   if (!authorization) {
-    return res
-      .status(401)
-      .send({ error: true, message: "unAuthorized Access" });
+    return res.status(401).send({ error: true, message: "Invalid Token" });
   }
+  // console.log(authorization);
+
+  // Bearer token
   const token = authorization.split(" ")[1];
-  // console.log(token);
-  // token verify
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
-    if (error) {
-      return res
-        .status(401)
-        .send({ error: true, message: "unAuthorized Access" });
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ error: true, message: "Invalid Token" });
     }
     req.decoded = decoded;
     next();
@@ -49,8 +46,8 @@ async function run() {
     // await client.connect();
 
     const userCollection = client.db("sportsDb").collection("users");
-    const classesCollection = client.db("sportsDb").collection("classes");
-    const instructorsCollection = client
+    const classCollection = client.db("sportsDb").collection("classes");
+    const instructorCollection = client
       .db("sportsDb")
       .collection("instructors");
 
@@ -68,10 +65,9 @@ async function run() {
       const email = req.decoded.email;
       const query = { email: email };
       const user = await userCollection.findOne(query);
+      // console.log(user);
       if (user?.role !== "admin") {
-        return res
-          .status(403)
-          .send({ error: true, message: "forbidden message" });
+        return res.send({ admin: false });
       }
       next();
     };
@@ -96,7 +92,19 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/users/admin/:id", async (req, res) => {
+    app.get("/users/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ admin: false });
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const result = { admin: user?.role === "admin" };
+      res.send(result);
+    });
+
+    app.patch("/users/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const { role } = req.body;
       const filter = { _id: new ObjectId(id) };
@@ -109,23 +117,75 @@ async function run() {
       res.send(result);
     });
 
-    // set database
+    // Make Instructor
+    app.get("/users/instructor/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      if (req.decoded.email !== email) {
+        res.send({ instructor: false });
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const result = { instructor: user?.role === "instructor" };
+      res.send(result);
+    });
+
+    app.patch(
+      "/classes/admin/feedback/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const _id = new ObjectId(req.params.id);
+        const { feedback } = req.body;
+        const result = await classCollection.updateOne(
+          { _id },
+          { $set: { feedback } },
+          { upsert: true }
+        );
+        res.send(result);
+      }
+    );
+
+    // Classes Collection
     app.get("/classes", async (req, res) => {
-      const result = await classesCollection.find().toArray();
+      const result = await classCollection.find().toArray();
       res.send(result);
     });
 
-    // add class
     app.post("/classes", async (req, res) => {
-      const newAddClass = req.body;
-      // console.log(newAddClass);
-      const result = await classesCollection.insertOne(newAddClass);
+      const newItem = req.body;
+      const result = await classCollection.insertOne(newItem);
       res.send(result);
     });
 
-    // instructors data
+    app.patch("/classes/admin/status/:id", async (req, res) => {
+      const id = req.params.id;
+      const { status } = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: status,
+        },
+      };
+      const result = await classCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.patch("/classes/admin/feedback/:id", async (req, res) => {
+      const id = req.params.id;
+      const { feedback } = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          feedback: feedback,
+        },
+      };
+      const result = await classCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // Instructors Collection
     app.get("/instructors", async (req, res) => {
-      const result = await instructorsCollection.find().toArray();
+      const result = await instructorCollection.find().toArray();
       res.send(result);
     });
 
