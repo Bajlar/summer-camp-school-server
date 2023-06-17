@@ -186,10 +186,23 @@ async function run() {
     });
 
     // class selected
+    app.get("/selected", async (req, res) => {
+      const result = await selectCollection.find().toArray();
+      res.send(result);
+    });
+
     app.post("/selected", async (req, res) => {
       const item = req.body;
       // console.log(item);
       const result = await selectCollection.insertOne(item);
+      res.send(result);
+    });
+
+    // selected class delete
+    app.delete("/selected/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await selectCollection.deleteOne(query);
       res.send(result);
     });
 
