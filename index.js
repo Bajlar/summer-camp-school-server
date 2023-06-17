@@ -119,7 +119,7 @@ async function run() {
       res.send(result);
     });
 
-    // Make Instructor
+    // Instructor
     app.get("/users/instructor/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       if (req.decoded.email !== email) {
@@ -186,8 +186,9 @@ async function run() {
     });
 
     // class selected
-    app.get("/selected", async (req, res) => {
-      const result = await selectCollection.find().toArray();
+    app.get("/selected/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await selectCollection.find({ email }).toArray();
       res.send(result);
     });
 
