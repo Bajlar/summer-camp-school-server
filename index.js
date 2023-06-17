@@ -50,6 +50,7 @@ async function run() {
     const instructorCollection = client
       .db("sportsDb")
       .collection("instructors");
+    const selectCollection = client.db("sportsDb").collection("selected");
 
     // jwt token
     app.post("/jwt", (req, res) => {
@@ -92,6 +93,7 @@ async function run() {
       res.send(result);
     });
 
+    // admin
     app.get("/users/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
       const email = req.params.email;
 
@@ -180,6 +182,14 @@ async function run() {
         },
       };
       const result = await classCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // class selected
+    app.post("/selected", async (req, res) => {
+      const item = req.body;
+      // console.log(item);
+      const result = await selectCollection.insertOne(item);
       res.send(result);
     });
 
